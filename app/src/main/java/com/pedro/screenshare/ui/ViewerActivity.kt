@@ -88,6 +88,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
 
         setupWebRtcCallbacks()
         updateStatus(getString(R.string.status_offline))
+        mainHandler.post { watchScreen() }
     }
 
     override fun onResume() {
@@ -116,6 +117,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
      */
     private fun watchScreen() {
         userStoppedWatching = false
+        buttonWatchScreen.isEnabled = false
         if (SignalingClient.isConnected() || SignalingClient.isConnecting()) return
         updateStatus(getString(R.string.status_connecting))
         SignalingClient.connect(Constants.SIGNALING_SERVER_URL)
@@ -139,6 +141,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
         mainHandler.removeCallbacks(reconnectRunnable)
         buttonRequestShare.isEnabled = false
         buttonStopWatching.isEnabled = false
+        buttonWatchScreen.isEnabled = true
         updateStatus(getString(R.string.status_offline))
     }
 
@@ -200,6 +203,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
         // Entra na sala fixa como visualizador - nenhum codigo digitado pelo
         // usuario, tudo automatico.
         SignalingClient.send(SignalingMessage(type = SignalingEvent.REGISTER_VIEWER, roomId = Constants.ROOM_ID))
+        buttonWatchScreen.isEnabled = false
         buttonStopWatching.isEnabled = true
     }
 
@@ -263,11 +267,13 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
         mainHandler.removeCallbacks(enableShareRequestRunnable)
         buttonRequestShare.isEnabled = false
         buttonStopWatching.isEnabled = false
+        buttonWatchScreen.isEnabled = userStoppedWatching
         scheduleReconnect()
     }
 
     override fun onError(description: String) {
         updateStatus(getString(R.string.status_error))
+        buttonWatchScreen.isEnabled = userStoppedWatching
         scheduleReconnect()
     }
 
