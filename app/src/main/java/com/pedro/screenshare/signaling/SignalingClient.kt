@@ -46,11 +46,13 @@ object SignalingClient {
 
     private var webSocket: WebSocket? = null
     private var isConnected = false
+    private var isConnecting = false
 
     // Timeouts generosos porque WebSocket e uma conexao de longa duracao
     // (fica aberta o tempo todo, nao e uma requisicao rapida).
     private val httpClient = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS) // sem timeout de leitura (conexao permanente)
+        .pingInterval(25, TimeUnit.SECONDS)
         .build()
 
     // As respostas do servidor chegam em uma thread de rede (do OkHttp). Como
@@ -60,9 +62,12 @@ object SignalingClient {
 
     fun isConnected(): Boolean = isConnected
 
+    fun isConnecting(): Boolean = isConnecting
+
     /** Abre a conexao WebSocket com o servidor. Nao faz nada se ja estiver conectado. */
     fun connect(serverUrl: String) {
-        if (isConnected) return
+        if (isConnected || isConnecting) return
+        isConnecting = true
 
         val requestBuilder = Request.Builder().url(serverUrl)
         if (Constants.SIGNALING_AUTH_TOKEN.isNotBlank()) {
@@ -73,6 +78,7 @@ object SignalingClient {
         webSocket = httpClient.newWebSocket(request, object : WebSocketListener() {
 
             override fun onOpen(webSocket: WebSocket, response: Response) {
+                isConnecting = false
                 isConnected = true
                 mainThreadHandler.post { listener?.onOpen() }
             }
@@ -83,11 +89,13 @@ object SignalingClient {
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                isConnecting = false
                 isConnected = false
                 mainThreadHandler.post { listener?.onClosed() }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                isConnecting = false
                 isConnected = false
                 mainThreadHandler.post { listener?.onError(t.message ?: "Erro de conexao desconhecido") }
             }
@@ -103,6 +111,7 @@ object SignalingClient {
     fun disconnect() {
         webSocket?.close(1000, "Desconectado pelo usuario")
         webSocket = null
+        isConnecting = false
         isConnected = false
     }
 }

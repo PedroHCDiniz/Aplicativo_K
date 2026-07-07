@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.widget.Button
 import android.widget.TextView
@@ -53,6 +55,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         private const val KEY_NOTIFICATION_PERMISSION_PROMPT_SHOWN =
             "notification_permission_prompt_shown"
         private const val SHARE_REQUEST_NOTICE_COOLDOWN_MS = 30_000L
+        private const val RECONNECT_DELAY_MS = 5_000L
     }
 
     private lateinit var localConfigManager: LocalConfigManager
@@ -70,6 +73,10 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     private var localVideoTrack: VideoTrack? = null
     private var pendingCaptureAction: CaptureAction? = null
     private var lastShareRequestNoticeAt = 0L
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val reconnectRunnable = Runnable {
+        goOnline()
+    }
 
     // --- Launchers para a tela de permissao do Android (MediaProjection) ---
     // Sao dois launchers SEPARADOS porque compartilhamento e gravacao sao
@@ -140,6 +147,12 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         // continua rodando e as mensagens (ex: novo visualizador entrando)
         // ainda precisam ser processadas.
         SignalingClient.listener = this
+        goOnline()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mainHandler.removeCallbacks(reconnectRunnable)
     }
 
     // -------------------------------------------------------------------
@@ -147,7 +160,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     // -------------------------------------------------------------------
 
     private fun goOnline() {
-        if (SignalingClient.isConnected()) return
+        if (SignalingClient.isConnected() || SignalingClient.isConnecting()) return
         updateStatus(getString(R.string.status_connecting))
         SignalingClient.connect(Constants.SIGNALING_SERVER_URL)
     }
@@ -185,6 +198,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         ScreenCaptureService.stopRecording(applicationContext)
 
         localConfigManager.resetConfig()
+        mainHandler.removeCallbacks(reconnectRunnable)
         startActivity(Intent(this, SetupActivity::class.java))
         finish()
     }
@@ -348,10 +362,12 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         buttonGoOnline.isEnabled = true
         buttonStartSharing.isEnabled = false
         buttonStopSharing.isEnabled = false
+        scheduleReconnect()
     }
 
     override fun onError(description: String) {
         updateStatus(getString(R.string.status_error))
+        scheduleReconnect()
     }
 
     private fun updateStatus(text: String) {
@@ -410,5 +426,10 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
             .edit()
             .putBoolean(KEY_NOTIFICATION_PERMISSION_PROMPT_SHOWN, true)
             .apply()
+    }
+
+    private fun scheduleReconnect() {
+        mainHandler.removeCallbacks(reconnectRunnable)
+        mainHandler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS)
     }
 }

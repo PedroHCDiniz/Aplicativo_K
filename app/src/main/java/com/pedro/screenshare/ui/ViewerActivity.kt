@@ -37,6 +37,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
 
     companion object {
         private const val SHARE_REQUEST_COOLDOWN_MS = 30_000L
+        private const val RECONNECT_DELAY_MS = 5_000L
     }
 
     private lateinit var localConfigManager: LocalConfigManager
@@ -54,6 +55,12 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
             buttonRequestShare.isEnabled = true
         }
     }
+    private val reconnectRunnable = Runnable {
+        if (!userStoppedWatching) {
+            watchScreen()
+        }
+    }
+    private var userStoppedWatching = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,11 +93,15 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
     override fun onResume() {
         super.onResume()
         SignalingClient.listener = this
+        if (!userStoppedWatching) {
+            watchScreen()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         mainHandler.removeCallbacks(enableShareRequestRunnable)
+        mainHandler.removeCallbacks(reconnectRunnable)
         surfaceRemoteVideo.release()
     }
 
@@ -104,7 +115,8 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
      * comeca a aparecer sozinho assim que a oferta WebRTC chegar.
      */
     private fun watchScreen() {
-        if (SignalingClient.isConnected()) return
+        userStoppedWatching = false
+        if (SignalingClient.isConnected() || SignalingClient.isConnecting()) return
         updateStatus(getString(R.string.status_connecting))
         SignalingClient.connect(Constants.SIGNALING_SERVER_URL)
     }
@@ -118,11 +130,13 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
     }
 
     private fun stopWatching() {
+        userStoppedWatching = true
         WebRtcClient.closePeerConnection(WebRtcClient.TRANSMITTER_PEER_ID)
         SignalingClient.disconnect()
         surfaceRemoteVideo.clearImage()
 
         mainHandler.removeCallbacks(enableShareRequestRunnable)
+        mainHandler.removeCallbacks(reconnectRunnable)
         buttonRequestShare.isEnabled = false
         buttonStopWatching.isEnabled = false
         updateStatus(getString(R.string.status_offline))
@@ -131,6 +145,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
     private fun resetConfig() {
         WebRtcClient.closePeerConnection(WebRtcClient.TRANSMITTER_PEER_ID)
         SignalingClient.disconnect()
+        mainHandler.removeCallbacks(reconnectRunnable)
 
         localConfigManager.resetConfig()
         startActivity(Intent(this, SetupActivity::class.java))
@@ -248,13 +263,21 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
         mainHandler.removeCallbacks(enableShareRequestRunnable)
         buttonRequestShare.isEnabled = false
         buttonStopWatching.isEnabled = false
+        scheduleReconnect()
     }
 
     override fun onError(description: String) {
         updateStatus(getString(R.string.status_error))
+        scheduleReconnect()
     }
 
     private fun updateStatus(text: String) {
         textStatus.text = text
+    }
+
+    private fun scheduleReconnect() {
+        if (userStoppedWatching) return
+        mainHandler.removeCallbacks(reconnectRunnable)
+        mainHandler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS)
     }
 }
