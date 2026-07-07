@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema simples baseado no Material Design. Nao ha necessidade de nada
+         mais elaborado para este MVP. -->
+    <style name="Theme.AplicativoK" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+</resources>

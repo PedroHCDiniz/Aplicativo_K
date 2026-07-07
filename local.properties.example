@@ -1,0 +1,18 @@
+# Copie este arquivo para local.properties e preencha os valores reais.
+# O sdk.dir muda de maquina para maquina.
+sdk.dir=C:/Users/Acer/AppData/Local/Android/Sdk
+
+# Local:
+# signalingServerUrl=ws://192.168.18.12:3000
+#
+# Producao:
+signalingServerUrl=wss://signal.seu-dominio.com
+signalingAuthToken=troque-por-um-token-longo-e-secreto
+
+stunServerUrl=stun:stun.l.google.com:19302
+
+# Pode informar mais de uma URL separada por virgula.
+turnServerUrl=turn:turn.seu-dominio.com:3478?transport=udp,turns:turn.seu-dominio.com:5349?transport=tcp
+turnUsername=usuario-turn
+turnPassword=senha-turn
+

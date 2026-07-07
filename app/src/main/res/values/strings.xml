@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aplicativo K</string>
+
+    <!-- Tela de configuracao inicial -->
+    <string name="setup_title">Configuração inicial</string>
+    <string name="setup_instructions">Digite o código de configuração do aparelho:</string>
+    <string name="setup_code_hint">Código</string>
+    <string name="setup_confirm_button">Confirmar</string>
+    <string name="setup_invalid_code">Código inválido</string>
+
+    <!-- Comuns as duas telas (transmissor/visualizador) -->
+    <string name="btn_reset_config">Redefinir configuração</string>
+    <string name="status_offline">Offline</string>
+    <string name="status_connecting">Conectando</string>
+    <string name="status_error">Erro de conexão</string>
+
+    <!-- Tela do transmissor -->
+    <string name="transmitter_role_label">Este aparelho está configurado como TRANSMISSOR</string>
+    <string name="status_ready">Pronto</string>
+    <string name="status_sharing">Compartilhando tela</string>
+    <string name="btn_go_online">Ficar online</string>
+    <string name="btn_start_sharing">Iniciar compartilhamento</string>
+    <string name="btn_stop_sharing">Parar compartilhamento</string>
+    <string name="btn_start_recording">Gravar tela</string>
+    <string name="btn_stop_recording">Parar gravação</string>
+    <string name="msg_viewer_requested_share">Um visualizador solicitou o compartilhamento</string>
+    <string name="msg_recording_saved">Vídeo salvo em: %1$s</string>
+    <string name="msg_only_one_transmitter">Já existe um transmissor ativo nesta sala</string>
+    <string name="notification_permission_title">Notificação durante a captura</string>
+    <string name="notification_permission_message">O Android exige uma notificação fixa enquanto a tela estiver sendo compartilhada ou gravada. Ela ficará silenciosa, sem som nem vibração. Se preferir não permitir agora, o app não vai insistir.</string>
+    <string name="notification_permission_positive">Permitir</string>
+    <string name="notification_permission_negative">Agora não</string>
+
+    <!-- Tela do visualizador -->
+    <string name="viewer_role_label">Este aparelho está configurado como VISUALIZADOR</string>
+    <string name="status_waiting_transmitter">Aguardando transmissor</string>
+    <string name="status_receiving">Recebendo transmissão</string>
+    <string name="btn_watch_screen">Assistir tela</string>
+    <string name="btn_request_share">Solicitar compartilhamento</string>
+    <string name="btn_stop_watching">Parar de assistir</string>
+    <string name="msg_share_request_sent">Pedido enviado ao transmissor</string>
+    <string name="msg_waiting_transmitter_start">Aguardando o transmissor iniciar o compartilhamento</string>
+    <string name="msg_transmitter_offline">Transmissor offline</string>
+    <string name="msg_sharing_ended">Compartilhamento encerrado</string>
+</resources>

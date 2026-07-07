@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Necessaria para conectar no backend via WebSocket e trocar video via WebRTC. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Necessarias para rodar um Foreground Service (obrigatorio durante a
+         captura/gravacao de tela, para o Android nao matar o app em segundo
+         plano e para deixar claro ao usuario que algo esta ativo). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- A partir do Android 14 (API 34), servicos em primeiro plano que usam
+         MediaProjection precisam declarar este tipo especifico de permissao. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+
+    <!-- A partir do Android 13 (API 33), mostrar uma notificacao (a notificacao
+         fixa de "compartilhando/gravando tela") exige esta permissao em tempo
+         de execucao. Ver PermissionUtils.kt. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@android:drawable/sym_def_app_icon"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AplicativoK">
+
+        <!-- Tela inicial: decide para onde mandar o usuario (Setup, Transmissor
+             ou Visualizador) de acordo com a configuracao salva no aparelho. -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Tela de primeira configuracao (digitar o codigo fixo). -->
+        <activity android:name=".ui.SetupActivity" android:exported="false" />
+
+        <!-- Tela do celular TRANSMISSOR. -->
+        <activity android:name=".ui.TransmitterActivity" android:exported="false" />
+
+        <!-- Tela do celular VISUALIZADOR. -->
+        <activity android:name=".ui.ViewerActivity" android:exported="false" />
+
+        <!--
+            Servico em primeiro piano (Foreground Service) responsavel por manter
+            a captura/gravacao de tela viva mesmo com o app em segundo plano.
+
+            foregroundServiceType="mediaProjection" e OBRIGATORIO a partir do
+            Android 10 (API 29) para servicos que usam MediaProjection - sem
+            isso o sistema recusa iniciar a captura de tela.
+        -->
+        <service
+            android:name=".service.ScreenCaptureService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+    </application>
+
+</manifest>

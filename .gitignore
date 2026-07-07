@@ -1,0 +1,7 @@
+.gradle/
+build/
+app/build/
+server/node_modules/
+server/*.log
+local.properties
+

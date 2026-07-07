@@ -1,0 +1,12 @@
+{
+  "name": "sala-pedro-signaling-server",
+  "version": "1.0.0",
+  "description": "Servidor de sinalizacao (signaling) WebSocket para o app de compartilhamento de tela. Ele NAO transmite video - apenas troca mensagens (quem esta online, ofertas/respostas WebRTC, ICE candidates) entre o transmissor e os visualizadores.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.17.0"
+  }
+}
