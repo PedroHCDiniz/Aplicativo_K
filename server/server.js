@@ -216,8 +216,11 @@ function handleMessage(socket, message) {
  */
 function handleRegisterTransmitter(socket, room) {
   if (room.transmitter && room.transmitter.socket.readyState === WebSocket.OPEN) {
-    sendError(socket, 'Ja existe um transmissor ativo nesta sala.');
-    return;
+    sendJson(room.transmitter.socket, {
+      type: 'error',
+      message: 'Outro transmissor assumiu esta sala.',
+    });
+    room.transmitter.socket.close(1000, 'Substituido por novo transmissor');
   }
 
   socket.role = 'transmitter';
