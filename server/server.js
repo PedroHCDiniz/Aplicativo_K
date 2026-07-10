@@ -331,6 +331,10 @@ function handleDisconnect(socket) {
   const room = getOrCreateRoom(socket.roomId);
 
   if (socket.role === 'transmitter') {
+    if (!room.transmitter || room.transmitter.socket !== socket) {
+      return;
+    }
+
     room.transmitter = null;
     room.isSharing = false;
     broadcastToViewers(room, { type: 'transmitter-offline' });
