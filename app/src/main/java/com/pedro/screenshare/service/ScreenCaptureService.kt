@@ -303,5 +303,13 @@ class ScreenCaptureService : Service() {
         super.onDestroy()
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        if (isSharing || isRecording) {
+            refreshNotification()
+            return
+        }
+        stopSelf()
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 }

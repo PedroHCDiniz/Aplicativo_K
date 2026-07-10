@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.pedro.screenshare.R
 import com.pedro.screenshare.data.LocalConfigManager
 import com.pedro.screenshare.service.ScreenCaptureService
+import com.pedro.screenshare.session.TransmitterSession
 import com.pedro.screenshare.signaling.SignalingClient
 import com.pedro.screenshare.signaling.SignalingEvent
 import com.pedro.screenshare.signaling.SignalingMessage
@@ -85,6 +86,28 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     }
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var ignoreInitialNetworkAvailable = false
+    private val transmitterSessionUiListener = object : TransmitterSession.UiListener {
+        override fun onStatusChanged(text: String) {
+            runOnUiThread {
+                updateStatus(text)
+            }
+        }
+
+        override fun onSharingStateChanged(isSharing: Boolean) {
+            runOnUiThread {
+                this@TransmitterActivity.isSharing = isSharing
+                buttonGoOnline.isEnabled = !SignalingClient.isConnected() && !SignalingClient.isConnecting()
+                buttonStartSharing.isEnabled = !isSharing && SignalingClient.isConnected()
+                buttonStopSharing.isEnabled = isSharing
+            }
+        }
+
+        override fun onUserMessage(text: String) {
+            runOnUiThread {
+                Toast.makeText(this@TransmitterActivity, text, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     // --- Launchers para a tela de permissao do Android (MediaProjection) ---
     // Sao dois launchers SEPARADOS porque compartilhamento e gravacao sao
@@ -94,7 +117,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val permissionData = result.data
             if (result.resultCode == Activity.RESULT_OK && permissionData != null) {
-                ScreenCaptureService.startSharing(applicationContext, permissionData)
+                TransmitterSession.startSharing(applicationContext, permissionData)
             } else {
                 Toast.makeText(this, "Permissão de compartilhamento negada", Toast.LENGTH_SHORT).show()
             }
@@ -141,9 +164,8 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         buttonToggleRecording.setOnClickListener { toggleRecording() }
         buttonResetConfig.setOnClickListener { resetConfig() }
 
-        setupScreenCaptureServiceCallbacks()
-        setupWebRtcCallbacks()
-        setupNetworkReconnect()
+        TransmitterSession.bindUi(applicationContext, transmitterSessionUiListener)
+        setupRecordingCallbacks()
         keepConnectionWhenBackIsPressed()
 
         updateStatus(getString(R.string.status_offline))
@@ -156,12 +178,13 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         // usuario minimizar o app enquanto compartilha, o Foreground Service
         // continua rodando e as mensagens (ex: novo visualizador entrando)
         // ainda precisam ser processadas.
-        SignalingClient.listener = this
-        goOnline()
+        TransmitterSession.bindUi(applicationContext, transmitterSessionUiListener)
+        TransmitterSession.goOnline(applicationContext)
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        TransmitterSession.unbindUi(transmitterSessionUiListener)
         mainHandler.removeCallbacks(reconnectRunnable)
         mainHandler.removeCallbacks(networkReconnectRunnable)
         unregisterNetworkReconnect()
@@ -172,9 +195,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     // -------------------------------------------------------------------
 
     private fun goOnline() {
-        if (SignalingClient.isConnected() || SignalingClient.isConnecting()) return
-        updateStatus(getString(R.string.status_connecting))
-        SignalingClient.connect(Constants.SIGNALING_SERVER_URL)
+        TransmitterSession.goOnline(applicationContext)
     }
 
     private fun requestStartSharing() {
@@ -182,15 +203,8 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     }
 
     private fun stopSharing() {
-        ScreenCaptureService.stopSharing(applicationContext)
-        WebRtcClient.closeAllPeerConnections()
-        SignalingClient.send(SignalingMessage(type = SignalingEvent.SHARING_STOPPED, roomId = Constants.ROOM_ID))
-
-        isSharing = false
+        TransmitterSession.stopSharing(applicationContext)
         localVideoTrack = null
-        buttonStartSharing.isEnabled = true
-        buttonStopSharing.isEnabled = false
-        updateStatus(getString(R.string.status_ready))
     }
 
     private fun toggleRecording() {
@@ -204,7 +218,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     }
 
     private fun resetConfig() {
-        SignalingClient.disconnect()
+        TransmitterSession.reset(applicationContext)
         WebRtcClient.closeAllPeerConnections()
         ScreenCaptureService.stopSharing(applicationContext)
         ScreenCaptureService.stopRecording(applicationContext)
@@ -219,34 +233,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     // Callbacks do ScreenCaptureService (captura/gravacao de tela)
     // -------------------------------------------------------------------
 
-    private fun setupScreenCaptureServiceCallbacks() {
-        ScreenCaptureService.onLocalVideoTrackReady = { track ->
-            localVideoTrack = track
-            isSharing = true
-            runOnUiThread {
-                updateStatus(getString(R.string.status_sharing))
-                buttonStartSharing.isEnabled = false
-                buttonStopSharing.isEnabled = true
-            }
-            // Avisa o servidor que a transmissao comecou. O servidor responde
-            // com a lista de visualizadores ja conectados (tratado abaixo em
-            // onMessage/SHARING_STARTED), para criarmos uma oferta para cada um.
-            SignalingClient.send(SignalingMessage(type = SignalingEvent.SHARING_STARTED, roomId = Constants.ROOM_ID))
-        }
-
-        ScreenCaptureService.onSharingStoppedBySystem = {
-            runOnUiThread {
-                isSharing = false
-                localVideoTrack = null
-                updateStatus(getString(R.string.status_ready))
-                buttonStartSharing.isEnabled = true
-                buttonStopSharing.isEnabled = false
-                Toast.makeText(this, "Compartilhamento interrompido pelo sistema", Toast.LENGTH_LONG).show()
-            }
-            WebRtcClient.closeAllPeerConnections()
-            SignalingClient.send(SignalingMessage(type = SignalingEvent.SHARING_STOPPED, roomId = Constants.ROOM_ID))
-        }
-
+    private fun setupRecordingCallbacks() {
         ScreenCaptureService.onRecordingStoppedBySystem = {
             runOnUiThread {
                 isRecording = false
