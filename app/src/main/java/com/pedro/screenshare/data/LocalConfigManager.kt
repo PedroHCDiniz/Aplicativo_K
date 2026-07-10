@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.pedro.screenshare.utils.Constants
+import java.security.KeyStore
 
 /**
  * LocalConfigManager
@@ -32,6 +33,16 @@ class LocalConfigManager(context: Context) {
     private val securePrefs: SharedPreferences
 
     init {
+        val appContext = context.applicationContext
+        securePrefs = try {
+            createSecurePrefs(appContext)
+        } catch (_: Exception) {
+            recoverCorruptedSecurePrefs(appContext)
+            createSecurePrefs(appContext)
+        }
+    }
+
+    private fun createSecurePrefs(context: Context): SharedPreferences {
         // MasterKey: chave mestra usada para criptografar/descriptografar as
         // preferencias. E gerada automaticamente na primeira vez e guardada
         // no Android Keystore (nunca fica exposta em texto puro).
@@ -39,13 +50,23 @@ class LocalConfigManager(context: Context) {
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
 
-        securePrefs = EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             context,
             Constants.PREFS_FILE_NAME,
             masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+    }
+
+    private fun recoverCorruptedSecurePrefs(context: Context) {
+        context.deleteSharedPreferences(Constants.PREFS_FILE_NAME)
+        runCatching {
+            KeyStore.getInstance("AndroidKeyStore").apply {
+                load(null)
+                deleteEntry(MasterKey.DEFAULT_MASTER_KEY_ALIAS)
+            }
+        }
     }
 
     /**
