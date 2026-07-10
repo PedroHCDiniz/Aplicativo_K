@@ -39,9 +39,6 @@
         <!-- Tela de primeira configuracao (digitar o codigo fixo). -->
         <activity android:name=".ui.SetupActivity" android:exported="false" />
 
-        <!-- Tela de senha exibida antes de entrar em aparelho ja configurado. -->
-        <activity android:name=".ui.UnlockActivity" android:exported="false" />
-
         <!-- Tela do celular TRANSMISSOR. -->
         <activity android:name=".ui.TransmitterActivity" android:exported="false" />
 

@@ -14,6 +14,7 @@ import android.os.SystemClock
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.pedro.screenshare.R
@@ -143,6 +144,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         setupScreenCaptureServiceCallbacks()
         setupWebRtcCallbacks()
         setupNetworkReconnect()
+        keepConnectionWhenBackIsPressed()
 
         updateStatus(getString(R.string.status_offline))
     }
@@ -499,5 +501,13 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         } else {
             goOnline()
         }
+    }
+
+    private fun keepConnectionWhenBackIsPressed() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                moveTaskToBack(true)
+            }
+        })
     }
 }

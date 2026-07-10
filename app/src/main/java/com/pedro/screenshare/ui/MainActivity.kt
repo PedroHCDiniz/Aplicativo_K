@@ -29,8 +29,8 @@ class MainActivity : AppCompatActivity() {
         val localConfigManager = LocalConfigManager(applicationContext)
 
         val nextActivityClass = when (localConfigManager.getRole()) {
-            UserRole.TRANSMITTER,
-            UserRole.VIEWER -> UnlockActivity::class.java
+            UserRole.TRANSMITTER -> TransmitterActivity::class.java
+            UserRole.VIEWER -> ViewerActivity::class.java
             null -> SetupActivity::class.java // aparelho ainda nao configurado
         }
 

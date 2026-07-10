@@ -9,6 +9,7 @@ import android.os.Looper
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.pedro.screenshare.R
 import com.pedro.screenshare.data.LocalConfigManager
@@ -95,6 +96,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
 
         setupWebRtcCallbacks()
         setupNetworkReconnect()
+        keepConnectionWhenBackIsPressed()
         updateStatus(getString(R.string.status_offline))
         mainHandler.post { watchScreen() }
     }
@@ -347,5 +349,13 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
         } else {
             watchScreen()
         }
+    }
+
+    private fun keepConnectionWhenBackIsPressed() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                moveTaskToBack(true)
+            }
+        })
     }
 }

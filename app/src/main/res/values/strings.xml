@@ -11,12 +11,6 @@
     <string name="setup_invalid_code">Código inválido</string>
     <string name="setup_invalid_credentials">Código ou senha inválidos</string>
 
-    <!-- Tela de desbloqueio -->
-    <string name="unlock_title">Acesso</string>
-    <string name="unlock_instructions">Digite a senha para entrar:</string>
-    <string name="unlock_button">Entrar</string>
-    <string name="unlock_invalid_password">Senha inválida</string>
-
     <!-- Comuns as duas telas (transmissor/visualizador) -->
     <string name="btn_reset_config">Redefinir configuração</string>
     <string name="status_offline">Offline</string>
