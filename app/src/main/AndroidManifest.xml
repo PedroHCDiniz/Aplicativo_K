@@ -4,6 +4,7 @@
     <!-- Necessaria para conectar no backend via WebSocket e trocar video via WebRTC. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Necessarias para rodar um Foreground Service (obrigatorio durante a
          captura/gravacao de tela, para o Android nao matar o app em segundo
@@ -56,6 +57,7 @@
         <service
             android:name=".service.ScreenCaptureService"
             android:exported="false"
+            android:stopWithTask="false"
             android:foregroundServiceType="mediaProjection" />
 
     </application>

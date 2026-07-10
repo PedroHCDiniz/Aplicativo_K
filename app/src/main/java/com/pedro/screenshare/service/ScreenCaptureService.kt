@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.pedro.screenshare.recording.ScreenRecordManager
@@ -120,6 +121,7 @@ class ScreenCaptureService : Service() {
     private var isSharing = false
     private var isRecording = false
     private var currentRecordingFilePath: String? = null
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -146,6 +148,7 @@ class ScreenCaptureService : Service() {
         // SO DEPOIS pedimos o MediaProjection - essa ordem e obrigatoria a
         // partir do Android 10 (ver explicacao no topo do arquivo).
         startForeground(NOTIFICATION_ID, buildNotification())
+        acquireWakeLockIfNeeded()
 
         // OBS: o ScreenCapturerAndroid do WebRTC so precisa do Intent de
         // permissao (ele assume RESULT_OK, que e sempre o caso quando o
@@ -178,6 +181,7 @@ class ScreenCaptureService : Service() {
 
     private fun handleStartRecord(intent: Intent) {
         startForeground(NOTIFICATION_ID, buildNotification())
+        acquireWakeLockIfNeeded()
 
         val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
         val permissionData = readParcelableExtra(intent, EXTRA_RESULT_DATA) ?: return
@@ -208,9 +212,32 @@ class ScreenCaptureService : Service() {
     /** So encerra o servico quando NEM a transmissao NEM a gravacao estiverem ativas. */
     private fun stopServiceIfFullyIdle() {
         if (!isSharing && !isRecording) {
+            releaseWakeLockIfHeld()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
+    }
+
+    private fun acquireWakeLockIfNeeded() {
+        val currentWakeLock = wakeLock
+        if (currentWakeLock?.isHeld == true) return
+
+        val powerManager = getSystemService(PowerManager::class.java)
+        wakeLock = powerManager
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$packageName:ScreenCapture")
+            .apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+    }
+
+    private fun releaseWakeLockIfHeld() {
+        wakeLock?.let { lock ->
+            if (lock.isHeld) {
+                lock.release()
+            }
+        }
+        wakeLock = null
     }
 
     private fun refreshNotification() {
@@ -272,6 +299,7 @@ class ScreenCaptureService : Service() {
         // servico for encerrado de forma inesperada.
         screenShareManager?.stopCapturing()
         screenRecordManager?.stopRecording()
+        releaseWakeLockIfHeld()
         super.onDestroy()
     }
 
