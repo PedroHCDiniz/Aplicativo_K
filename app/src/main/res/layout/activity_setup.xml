@@ -28,7 +28,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/setup_code_hint"
-        android:inputType="textCapCharacters"
+        android:inputType="text"
+        android:singleLine="true"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/editPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/setup_password_hint"
+        android:inputType="numberPassword"
         android:singleLine="true"
         android:layout_marginBottom="16dp" />
 

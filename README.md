@@ -1,4 +1,4 @@
-# Aplicativo K - Compartilhamento de Tela em Tempo Real
+# informações android - Compartilhamento de Tela em Tempo Real
 
 App Android nativo (Kotlin) para compartilhar a tela de um celular com outro,
 em tempo real, via WebRTC. Um celular e o **TRANSMISSOR** (compartilha a
@@ -58,10 +58,10 @@ visualizadores, sempre na mesma sala).
 
 Na primeira vez que o app abre, ele pede um dos dois codigos fixos:
 
-| Codigo            | Papel salvo   |
-|-------------------|---------------|
-| `PEDRO-SEND-2026`  | TRANSMISSOR   |
-| `PEDRO-VIEW-2026`  | VISUALIZADOR  |
+| Codigo       | Senha | Papel salvo   |
+|--------------|-------|---------------|
+| `Transmitir` | `123` | TRANSMISSOR   |
+| `visualizar` | `123` | VISUALIZADOR  |
 
 Esse papel e salvo localmente de forma **criptografada**
 (`EncryptedSharedPreferences`, ver `data/LocalConfigManager.kt`) e lembrado
@@ -198,9 +198,9 @@ Depois de editar, recompile o app (Run novamente) nos dois celulares.
    Wi-Fi** (WebRTC/WebSocket local nao atravessa redes diferentes sem um
    servidor TURN - ver secao 7).
 3. Instale o app nos dois celulares com o IP correto configurado (secao 5).
-4. **No celular 1**: abra o app, digite `PEDRO-SEND-2026` -> vira
+4. **No celular 1**: abra o app, digite `Transmitir`, senha `123` -> vira
    TRANSMISSOR.
-5. **No celular 2**: abra o app, digite `PEDRO-VIEW-2026` -> vira
+5. **No celular 2**: abra o app, digite `visualizar`, senha `123` -> vira
    VISUALIZADOR.
 6. **No transmissor**: clique em "Ficar online" (status muda para
    "Pronto").

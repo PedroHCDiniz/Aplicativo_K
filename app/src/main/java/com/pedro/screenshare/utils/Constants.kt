@@ -26,8 +26,10 @@ object Constants {
     // Digitados apenas UMA VEZ, na primeira abertura do app (SetupActivity).
     // Depois disso o papel do aparelho fica salvo localmente (ver
     // data/LocalConfigManager.kt) e o usuario nunca mais precisa digitar nada.
-    const val TRANSMITTER_CODE = "PEDRO-SEND-2026"
-    const val VIEWER_CODE = "PEDRO-VIEW-2026"
+    const val TRANSMITTER_CODE = "Transmitir"
+    const val VIEWER_CODE = "visualizar"
+    const val SETUP_PASSWORD = "123"
+    const val CURRENT_CONFIG_VERSION = 2
 
     // -------------------------------------------------------------------
     // Servidor de sinalizacao (WebSocket)
@@ -47,6 +49,7 @@ object Constants {
     const val PREFS_FILE_NAME = "app_secure_prefs"
     const val KEY_USER_ROLE = "tipoUsuario" // guarda "TRANSMITTER" ou "VIEWER"
     const val KEY_ROOM_ID = "roomId"        // sempre ROOM_ID, salvo por conveniencia/clareza
+    const val KEY_CONFIG_VERSION = "configVersion"
 
     // -------------------------------------------------------------------
     // Servidores ICE (STUN / TURN) usados pelo WebRTC

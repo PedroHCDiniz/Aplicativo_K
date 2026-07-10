@@ -230,7 +230,7 @@ class ScreenCaptureService : Service() {
         }
 
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("Aplicativo K")
+            .setContentTitle(getString(com.pedro.screenshare.R.string.app_name))
             .setContentText(statusText)
             .setSmallIcon(android.R.drawable.presence_video_online)
             .setOngoing(true) // notificacao fixa - usuario nao consegue deslizar para remover

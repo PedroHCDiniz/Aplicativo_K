@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.pedro.screenshare.R
 import com.pedro.screenshare.data.LocalConfigManager
 import com.pedro.screenshare.data.UserRole
+import com.pedro.screenshare.utils.Constants
 
 /**
  * SetupActivity
@@ -18,9 +19,9 @@ import com.pedro.screenshare.data.UserRole
  * primeira abertura do app), ou se o usuario clicar em "Redefinir
  * configuração" nas telas de transmissor/visualizador.
  *
- * O usuario digita um dos dois codigos fixos (ver Constants.kt):
- *   - PEDRO-SEND-2026 -> configura o aparelho como TRANSMISSOR
- *   - PEDRO-VIEW-2026 -> configura o aparelho como VISUALIZADOR
+ * O usuario digita um dos dois codigos fixos (ver Constants.kt) e a senha:
+ *   - Transmitir + senha correta -> configura o aparelho como TRANSMISSOR
+ *   - visualizar + senha correta -> configura o aparelho como VISUALIZADOR
  *
  * Depois de salvo (ver LocalConfigManager.saveRole), o app NUNCA MAIS mostra
  * esta tela sozinho - ela so volta a aparecer se o usuario pedir para
@@ -37,15 +38,17 @@ class SetupActivity : AppCompatActivity() {
         localConfigManager = LocalConfigManager(applicationContext)
 
         val editCode = findViewById<EditText>(R.id.editCode)
+        val editPassword = findViewById<EditText>(R.id.editPassword)
         val buttonConfirm = findViewById<Button>(R.id.buttonConfirm)
         val textError = findViewById<TextView>(R.id.textSetupError)
 
         buttonConfirm.setOnClickListener {
             val typedCode = editCode.text.toString().trim()
+            val typedPassword = editPassword.text.toString().trim()
             val role = matchCodeToRole(typedCode)
 
-            if (role == null) {
-                textError.text = getString(R.string.setup_invalid_code)
+            if (role == null || typedPassword != Constants.SETUP_PASSWORD) {
+                textError.text = getString(R.string.setup_invalid_credentials)
                 textError.visibility = View.VISIBLE
                 return@setOnClickListener
             }
@@ -58,9 +61,13 @@ class SetupActivity : AppCompatActivity() {
     /** Compara o texto digitado com os dois codigos fixos de configuracao. */
     private fun matchCodeToRole(typedCode: String): UserRole? {
         return when (typedCode) {
-            com.pedro.screenshare.utils.Constants.TRANSMITTER_CODE -> UserRole.TRANSMITTER
-            com.pedro.screenshare.utils.Constants.VIEWER_CODE -> UserRole.VIEWER
-            else -> null
+            Constants.TRANSMITTER_CODE -> UserRole.TRANSMITTER
+            Constants.VIEWER_CODE -> UserRole.VIEWER
+            else -> when {
+                typedCode.equals(Constants.TRANSMITTER_CODE, ignoreCase = true) -> UserRole.TRANSMITTER
+                typedCode.equals(Constants.VIEWER_CODE, ignoreCase = true) -> UserRole.VIEWER
+                else -> null
+            }
         }
     }
 

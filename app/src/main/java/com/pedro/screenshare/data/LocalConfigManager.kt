@@ -57,6 +57,7 @@ class LocalConfigManager(context: Context) {
         securePrefs.edit()
             .putString(Constants.KEY_USER_ROLE, role.name)
             .putString(Constants.KEY_ROOM_ID, Constants.ROOM_ID)
+            .putInt(Constants.KEY_CONFIG_VERSION, Constants.CURRENT_CONFIG_VERSION)
             .apply()
     }
 
@@ -65,6 +66,9 @@ class LocalConfigManager(context: Context) {
      * passou pela configuracao inicial (primeira vez que o app e aberto).
      */
     fun getRole(): UserRole? {
+        if (securePrefs.getInt(Constants.KEY_CONFIG_VERSION, 0) != Constants.CURRENT_CONFIG_VERSION) {
+            return null
+        }
         return UserRole.fromStorageValue(securePrefs.getString(Constants.KEY_USER_ROLE, null))
     }
 
