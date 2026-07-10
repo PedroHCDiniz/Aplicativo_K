@@ -5,6 +5,8 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -77,6 +79,11 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     private val reconnectRunnable = Runnable {
         goOnline()
     }
+    private val networkReconnectRunnable = Runnable {
+        reconnectAfterNetworkChange()
+    }
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private var ignoreInitialNetworkAvailable = false
 
     // --- Launchers para a tela de permissao do Android (MediaProjection) ---
     // Sao dois launchers SEPARADOS porque compartilhamento e gravacao sao
@@ -135,6 +142,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
 
         setupScreenCaptureServiceCallbacks()
         setupWebRtcCallbacks()
+        setupNetworkReconnect()
 
         updateStatus(getString(R.string.status_offline))
     }
@@ -153,6 +161,8 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     override fun onDestroy() {
         super.onDestroy()
         mainHandler.removeCallbacks(reconnectRunnable)
+        mainHandler.removeCallbacks(networkReconnectRunnable)
+        unregisterNetworkReconnect()
     }
 
     // -------------------------------------------------------------------
@@ -290,9 +300,16 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
 
     override fun onOpen() {
         SignalingClient.send(SignalingMessage(type = SignalingEvent.REGISTER_TRANSMITTER, roomId = Constants.ROOM_ID))
-        updateStatus(getString(R.string.status_ready))
         buttonGoOnline.isEnabled = false
-        buttonStartSharing.isEnabled = true
+        if (isSharing && localVideoTrack != null) {
+            updateStatus(getString(R.string.status_sharing))
+            buttonStartSharing.isEnabled = false
+            buttonStopSharing.isEnabled = true
+            SignalingClient.send(SignalingMessage(type = SignalingEvent.SHARING_STARTED, roomId = Constants.ROOM_ID))
+        } else {
+            updateStatus(getString(R.string.status_ready))
+            buttonStartSharing.isEnabled = true
+        }
     }
 
     override fun onMessage(message: SignalingMessage) {
@@ -431,5 +448,56 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     private fun scheduleReconnect() {
         mainHandler.removeCallbacks(reconnectRunnable)
         mainHandler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS)
+    }
+
+    private fun setupNetworkReconnect() {
+        val connectivityManager = getSystemService(ConnectivityManager::class.java)
+        ignoreInitialNetworkAvailable = connectivityManager.activeNetwork != null
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                mainHandler.post {
+                    if (ignoreInitialNetworkAvailable) {
+                        ignoreInitialNetworkAvailable = false
+                        return@post
+                    }
+                    scheduleNetworkReconnect()
+                }
+            }
+
+            override fun onLost(network: Network) {
+                mainHandler.post {
+                    if (SignalingClient.isConnected() || SignalingClient.isConnecting()) {
+                        updateStatus(getString(R.string.status_connecting))
+                    }
+                    scheduleNetworkReconnect()
+                }
+            }
+        }
+
+        connectivityManager.registerDefaultNetworkCallback(callback)
+        networkCallback = callback
+    }
+
+    private fun unregisterNetworkReconnect() {
+        val callback = networkCallback ?: return
+        getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(callback)
+        networkCallback = null
+    }
+
+    private fun scheduleNetworkReconnect() {
+        mainHandler.removeCallbacks(networkReconnectRunnable)
+        mainHandler.postDelayed(networkReconnectRunnable, 1_500L)
+    }
+
+    private fun reconnectAfterNetworkChange() {
+        if (isSharing) {
+            WebRtcClient.closeAllPeerConnections()
+        }
+        updateStatus(getString(R.string.status_connecting))
+        if (SignalingClient.isConnected() || SignalingClient.isConnecting()) {
+            SignalingClient.reconnect(Constants.SIGNALING_SERVER_URL)
+        } else {
+            goOnline()
+        }
     }
 }

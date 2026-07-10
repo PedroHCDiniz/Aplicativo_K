@@ -47,6 +47,7 @@ object SignalingClient {
     private var webSocket: WebSocket? = null
     private var isConnected = false
     private var isConnecting = false
+    private var connectionGeneration = 0
 
     // Timeouts generosos porque WebSocket e uma conexao de longa duracao
     // (fica aberta o tempo todo, nao e uma requisicao rapida).
@@ -68,6 +69,8 @@ object SignalingClient {
     fun connect(serverUrl: String) {
         if (isConnected || isConnecting) return
         isConnecting = true
+        connectionGeneration += 1
+        val generation = connectionGeneration
 
         val requestBuilder = Request.Builder().url(serverUrl)
         if (Constants.SIGNALING_AUTH_TOKEN.isNotBlank()) {
@@ -78,28 +81,43 @@ object SignalingClient {
         webSocket = httpClient.newWebSocket(request, object : WebSocketListener() {
 
             override fun onOpen(webSocket: WebSocket, response: Response) {
+                if (generation != connectionGeneration) return
                 isConnecting = false
                 isConnected = true
                 mainThreadHandler.post { listener?.onOpen() }
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
+                if (generation != connectionGeneration) return
                 val message = SignalingMessage.fromJson(text)
                 mainThreadHandler.post { listener?.onMessage(message) }
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                if (generation != connectionGeneration) return
                 isConnecting = false
                 isConnected = false
                 mainThreadHandler.post { listener?.onClosed() }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                if (generation != connectionGeneration) return
                 isConnecting = false
                 isConnected = false
                 mainThreadHandler.post { listener?.onError(t.message ?: "Erro de conexao desconhecido") }
             }
         })
+    }
+
+    /** Fecha qualquer socket antigo e abre um novo, util em troca Wi-Fi/dados moveis. */
+    fun reconnect(serverUrl: String) {
+        val oldSocket = webSocket
+        connectionGeneration += 1
+        webSocket = null
+        isConnecting = false
+        isConnected = false
+        oldSocket?.close(1001, "Reconectando")
+        connect(serverUrl)
     }
 
     /** Envia uma mensagem para o servidor. Nao faz nada se a conexao estiver fechada. */
@@ -109,6 +127,7 @@ object SignalingClient {
 
     /** Fecha a conexao WebSocket de propósito (ex: usuario clicou em "Parar"). */
     fun disconnect() {
+        connectionGeneration += 1
         webSocket?.close(1000, "Desconectado pelo usuario")
         webSocket = null
         isConnecting = false

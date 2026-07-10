@@ -1,4 +1,4 @@
-# informações android - Compartilhamento de Tela em Tempo Real
+# Informações Android - Compartilhamento de Tela em Tempo Real
 
 App Android nativo (Kotlin) para compartilhar a tela de um celular com outro,
 em tempo real, via WebRTC. Um celular e o **TRANSMISSOR** (compartilha a

@@ -1,6 +1,8 @@
 package com.pedro.screenshare.ui
 
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -60,7 +62,12 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
             watchScreen()
         }
     }
+    private val networkReconnectRunnable = Runnable {
+        reconnectAfterNetworkChange()
+    }
     private var userStoppedWatching = false
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private var ignoreInitialNetworkAvailable = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,6 +94,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
         buttonResetConfig.setOnClickListener { resetConfig() }
 
         setupWebRtcCallbacks()
+        setupNetworkReconnect()
         updateStatus(getString(R.string.status_offline))
         mainHandler.post { watchScreen() }
     }
@@ -103,6 +111,8 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
         super.onDestroy()
         mainHandler.removeCallbacks(enableShareRequestRunnable)
         mainHandler.removeCallbacks(reconnectRunnable)
+        mainHandler.removeCallbacks(networkReconnectRunnable)
+        unregisterNetworkReconnect()
         surfaceRemoteVideo.release()
     }
 
@@ -285,5 +295,57 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
         if (userStoppedWatching) return
         mainHandler.removeCallbacks(reconnectRunnable)
         mainHandler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS)
+    }
+
+    private fun setupNetworkReconnect() {
+        val connectivityManager = getSystemService(ConnectivityManager::class.java)
+        ignoreInitialNetworkAvailable = connectivityManager.activeNetwork != null
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                mainHandler.post {
+                    if (ignoreInitialNetworkAvailable) {
+                        ignoreInitialNetworkAvailable = false
+                        return@post
+                    }
+                    scheduleNetworkReconnect()
+                }
+            }
+
+            override fun onLost(network: Network) {
+                mainHandler.post {
+                    if (!userStoppedWatching) {
+                        updateStatus(getString(R.string.status_connecting))
+                        scheduleNetworkReconnect()
+                    }
+                }
+            }
+        }
+
+        connectivityManager.registerDefaultNetworkCallback(callback)
+        networkCallback = callback
+    }
+
+    private fun unregisterNetworkReconnect() {
+        val callback = networkCallback ?: return
+        getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(callback)
+        networkCallback = null
+    }
+
+    private fun scheduleNetworkReconnect() {
+        if (userStoppedWatching) return
+        mainHandler.removeCallbacks(networkReconnectRunnable)
+        mainHandler.postDelayed(networkReconnectRunnable, 1_500L)
+    }
+
+    private fun reconnectAfterNetworkChange() {
+        if (userStoppedWatching) return
+        WebRtcClient.closePeerConnection(WebRtcClient.TRANSMITTER_PEER_ID)
+        surfaceRemoteVideo.clearImage()
+        updateStatus(getString(R.string.status_connecting))
+        if (SignalingClient.isConnected() || SignalingClient.isConnecting()) {
+            SignalingClient.reconnect(Constants.SIGNALING_SERVER_URL)
+        } else {
+            watchScreen()
+        }
     }
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">informações android</string>
+    <string name="app_name">Informações Android</string>
 
     <!-- Tela de configuracao inicial -->
     <string name="setup_title">Configuração inicial</string>
@@ -10,6 +10,12 @@
     <string name="setup_confirm_button">Confirmar</string>
     <string name="setup_invalid_code">Código inválido</string>
     <string name="setup_invalid_credentials">Código ou senha inválidos</string>
+
+    <!-- Tela de desbloqueio -->
+    <string name="unlock_title">Acesso</string>
+    <string name="unlock_instructions">Digite a senha para entrar:</string>
+    <string name="unlock_button">Entrar</string>
+    <string name="unlock_invalid_password">Senha inválida</string>
 
     <!-- Comuns as duas telas (transmissor/visualizador) -->
     <string name="btn_reset_config">Redefinir configuração</string>
