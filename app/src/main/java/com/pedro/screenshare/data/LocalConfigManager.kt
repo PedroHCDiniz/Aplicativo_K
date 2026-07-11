@@ -31,9 +31,14 @@ import java.security.KeyStore
 class LocalConfigManager(context: Context) {
 
     private val securePrefs: SharedPreferences
+    private val fallbackPrefs: SharedPreferences
 
     init {
         val appContext = context.applicationContext
+        fallbackPrefs = appContext.getSharedPreferences(
+            "${Constants.PREFS_FILE_NAME}_backup",
+            Context.MODE_PRIVATE
+        )
         securePrefs = try {
             createSecurePrefs(appContext)
         } catch (_: Exception) {
@@ -80,6 +85,11 @@ class LocalConfigManager(context: Context) {
             .putString(Constants.KEY_ROOM_ID, Constants.ROOM_ID)
             .putInt(Constants.KEY_CONFIG_VERSION, Constants.CURRENT_CONFIG_VERSION)
             .apply()
+        fallbackPrefs.edit()
+            .putString(Constants.KEY_USER_ROLE, role.name)
+            .putString(Constants.KEY_ROOM_ID, Constants.ROOM_ID)
+            .putInt(Constants.KEY_CONFIG_VERSION, Constants.CURRENT_CONFIG_VERSION)
+            .apply()
     }
 
     /**
@@ -87,15 +97,25 @@ class LocalConfigManager(context: Context) {
      * passou pela configuracao inicial (primeira vez que o app e aberto).
      */
     fun getRole(): UserRole? {
-        if (securePrefs.getInt(Constants.KEY_CONFIG_VERSION, 0) != Constants.CURRENT_CONFIG_VERSION) {
+        readRoleFrom(securePrefs)?.let { return it }
+
+        val fallbackRole = readRoleFrom(fallbackPrefs) ?: return null
+        saveRole(fallbackRole)
+        return fallbackRole
+    }
+
+    private fun readRoleFrom(prefs: SharedPreferences): UserRole? {
+        if (prefs.getInt(Constants.KEY_CONFIG_VERSION, 0) != Constants.CURRENT_CONFIG_VERSION) {
             return null
         }
-        return UserRole.fromStorageValue(securePrefs.getString(Constants.KEY_USER_ROLE, null))
+        return UserRole.fromStorageValue(prefs.getString(Constants.KEY_USER_ROLE, null))
     }
 
     /** Retorna a sala salva (sempre a sala fixa, ver Constants.ROOM_ID). */
     fun getRoomId(): String {
-        return securePrefs.getString(Constants.KEY_ROOM_ID, Constants.ROOM_ID) ?: Constants.ROOM_ID
+        return securePrefs.getString(Constants.KEY_ROOM_ID, null)
+            ?: fallbackPrefs.getString(Constants.KEY_ROOM_ID, Constants.ROOM_ID)
+            ?: Constants.ROOM_ID
     }
 
     /** Verdadeiro se o aparelho ja passou pela configuracao inicial. */
@@ -109,5 +129,6 @@ class LocalConfigManager(context: Context) {
      */
     fun resetConfig() {
         securePrefs.edit().clear().apply()
+        fallbackPrefs.edit().clear().apply()
     }
 }
