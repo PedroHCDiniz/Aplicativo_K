@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Tela fake inicial -->
+    <string name="fake_android_word">Android</string>
+    <string name="fake_device_info_title">Informações do dispositivo</string>
+    <string name="fake_battery_label">Bateria</string>
+    <string name="fake_date_label">Data</string>
+    <string name="fake_time_label">Hora</string>
+
     <string name="app_name">Informações Android</string>
 
     <!-- Tela de configuracao inicial -->

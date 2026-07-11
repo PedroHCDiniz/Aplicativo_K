@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mainRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FAFAFA"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="28dp">
+
+    <ImageView
+        android:id="@+id/imageFakeAndroid"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_marginBottom="18dp"
+        android:contentDescription="@string/app_name"
+        android:src="@drawable/ic_app_icon" />
+
+    <TextView
+        android:id="@+id/textFakeAndroidWord"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:padding="8dp"
+        android:text="@string/fake_android_word"
+        android:textColor="#202124"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/textFakeSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="34dp"
+        android:text="@string/fake_device_info_title"
+        android:textColor="#5F6368"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/textFakeBatteryLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/fake_battery_label"
+        android:textColor="#5F6368"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/textFakeBattery"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="22dp"
+        android:textColor="#202124"
+        android:textSize="34sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/textFakeDateLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/fake_date_label"
+        android:textColor="#5F6368"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/textFakeDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="22dp"
+        android:textColor="#202124"
+        android:textSize="30sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/textFakeTimeLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/fake_time_label"
+        android:textColor="#5F6368"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/textFakeTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#202124"
+        android:textSize="42sp"
+        android:textStyle="bold" />
+
+</LinearLayout>
