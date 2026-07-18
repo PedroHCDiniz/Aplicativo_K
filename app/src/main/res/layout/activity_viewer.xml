@@ -32,6 +32,29 @@
         android:layout_weight="1"
         android:layout_marginBottom="16dp" />
 
+    <TextView
+        android:id="@+id/textRouteTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/viewer_route_title"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="6dp" />
+
+    <TextView
+        android:id="@+id/textRouteStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/viewer_route_waiting"
+        android:textSize="13sp"
+        android:layout_marginBottom="6dp" />
+
+    <com.pedro.screenshare.ui.RouteMapView
+        android:id="@+id/routeMapView"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:layout_marginBottom="16dp" />
+
     <Button
         android:id="@+id/buttonWatchScreen"
         android:layout_width="match_parent"

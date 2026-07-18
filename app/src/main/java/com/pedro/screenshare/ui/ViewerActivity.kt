@@ -15,6 +15,7 @@ import com.pedro.screenshare.R
 import com.pedro.screenshare.data.LocalConfigManager
 import com.pedro.screenshare.signaling.SignalingClient
 import com.pedro.screenshare.signaling.SignalingEvent
+import com.pedro.screenshare.signaling.RoutePoint
 import com.pedro.screenshare.signaling.SignalingMessage
 import com.pedro.screenshare.utils.Constants
 import com.pedro.screenshare.webrtc.PeerConnectionFactoryProvider
@@ -41,6 +42,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
     companion object {
         private const val SHARE_REQUEST_COOLDOWN_MS = 30_000L
         private const val RECONNECT_DELAY_MS = 5_000L
+        private const val MAX_ROUTE_POINTS = 2000
     }
 
     private lateinit var localConfigManager: LocalConfigManager
@@ -51,6 +53,8 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
     private lateinit var buttonRequestShare: Button
     private lateinit var buttonStopWatching: Button
     private lateinit var buttonResetConfig: Button
+    private lateinit var textRouteStatus: TextView
+    private lateinit var routeMapView: RouteMapView
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val enableShareRequestRunnable = Runnable {
@@ -69,6 +73,7 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
     private var userStoppedWatching = false
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var ignoreInitialNetworkAvailable = false
+    private val routePoints = mutableListOf<RoutePoint>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,6 +87,8 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
         buttonRequestShare = findViewById(R.id.buttonRequestShare)
         buttonStopWatching = findViewById(R.id.buttonStopWatching)
         buttonResetConfig = findViewById(R.id.buttonResetConfig)
+        textRouteStatus = findViewById(R.id.textRouteStatus)
+        routeMapView = findViewById(R.id.routeMapView)
 
         // Prepara o componente que vai desenhar o video recebido. Precisa do
         // mesmo EglBase.Context usado pelo resto do WebRTC no app (ver
@@ -270,6 +277,29 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
                 )
             }
 
+            SignalingEvent.ROUTE_HISTORY -> {
+                routePoints.clear()
+                routePoints.addAll(message.routePoints.orEmpty())
+                routeMapView.setRoutePoints(routePoints)
+                updateRouteStatus()
+            }
+
+            SignalingEvent.ROUTE_POINT -> {
+                val point = message.toRoutePointOrNull() ?: return
+                routePoints.add(point)
+                if (routePoints.size > MAX_ROUTE_POINTS) {
+                    routePoints.removeAt(0)
+                }
+                routeMapView.addRoutePoint(point)
+                updateRouteStatus()
+            }
+
+            SignalingEvent.ROUTE_CLEAR -> {
+                routePoints.clear()
+                routeMapView.clearRoute()
+                updateRouteStatus()
+            }
+
             else -> Unit
         }
     }
@@ -291,6 +321,25 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
 
     private fun updateStatus(text: String) {
         textStatus.text = text
+    }
+
+    private fun updateRouteStatus() {
+        textRouteStatus.text = if (routePoints.isEmpty()) {
+            getString(R.string.viewer_route_waiting)
+        } else {
+            getString(R.string.viewer_route_points, routePoints.size)
+        }
+    }
+
+    private fun SignalingMessage.toRoutePointOrNull(): RoutePoint? {
+        val latitude = latitude ?: return null
+        val longitude = longitude ?: return null
+        return RoutePoint(
+            latitude = latitude,
+            longitude = longitude,
+            accuracy = accuracy ?: 0f,
+            timestamp = timestamp ?: System.currentTimeMillis()
+        )
     }
 
     private fun scheduleReconnect() {
@@ -358,4 +407,5 @@ class ViewerActivity : AppCompatActivity(), SignalingClient.Listener {
             }
         })
     }
+
 }

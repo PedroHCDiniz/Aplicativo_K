@@ -59,6 +59,21 @@
             android:layout_marginBottom="12dp" />
 
         <Button
+            android:id="@+id/buttonStartRoute"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_start_route"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/buttonStopRoute"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_stop_route"
+            android:enabled="false"
+            android:layout_marginBottom="12dp" />
+
+        <Button
             android:id="@+id/buttonResetConfig"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

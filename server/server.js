@@ -184,6 +184,16 @@ function handleMessage(socket, message) {
       broadcastToViewers(room, { type: 'sharing-stopped' });
       break;
 
+    case 'route-clear':
+      if (socket.role !== 'transmitter') return;
+      room.routePoints = [];
+      broadcastToViewers(room, { type: 'route-clear' });
+      break;
+
+    case 'route-point':
+      handleRoutePoint(socket, room, message);
+      break;
+
     // As tres mensagens abaixo (offer/answer/ice-candidate) sao o "coracao"
     // da negociacao WebRTC. O servidor NAO entende o conteudo delas - ele
     // so olha "de quem veio" e "pra quem vai" e repassa (relay) para frente.
@@ -248,6 +258,9 @@ function handleRegisterViewer(socket, room) {
   // Informa o visualizador sobre o estado atual do transmissor.
   if (room.transmitter) {
     sendJson(socket, { type: 'transmitter-online' });
+    if (room.routePoints.length > 0) {
+      sendJson(socket, { type: 'route-history', routePoints: room.routePoints });
+    }
     if (room.isSharing) {
       // Ja esta compartilhando: avisa o visualizador E avisa o transmissor
       // que existe um novo interessado (o transmissor vai criar uma OFFER
@@ -263,6 +276,31 @@ function handleRegisterViewer(socket, room) {
   } else {
     sendJson(socket, { type: 'transmitter-offline' });
   }
+}
+
+function handleRoutePoint(socket, room, message) {
+  if (socket.role !== 'transmitter') return;
+
+  const point = {
+    latitude: Number(message.latitude),
+    longitude: Number(message.longitude),
+    accuracy: Number(message.accuracy || 0),
+    timestamp: Number(message.timestamp || Date.now()),
+  };
+
+  if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) {
+    return;
+  }
+
+  room.routePoints.push(point);
+  if (room.routePoints.length > 2000) {
+    room.routePoints = room.routePoints.slice(-2000);
+  }
+
+  broadcastToViewers(room, {
+    type: 'route-point',
+    ...point,
+  });
 }
 
 /**

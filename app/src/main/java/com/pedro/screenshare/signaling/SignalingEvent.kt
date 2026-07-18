@@ -41,6 +41,15 @@ object SignalingEvent {
     /** Candidato de rede (endereco/porta) trocado entre os dois lados da conexao WebRTC. */
     const val ICE_CANDIDATE = "ice-candidate"
 
+    /** Transmissor envia um novo ponto da rota do dia. */
+    const val ROUTE_POINT = "route-point"
+
+    /** Transmissor limpa a rota atual no servidor. */
+    const val ROUTE_CLEAR = "route-clear"
+
+    /** Servidor envia a rota atual para um visualizador que acabou de entrar. */
+    const val ROUTE_HISTORY = "route-history"
+
     // --- Enviados pelo SERVIDOR para o APP ---
 
     /** Avisa um visualizador que o transmissor esta online (conectado). */

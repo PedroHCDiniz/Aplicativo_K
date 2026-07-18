@@ -2,6 +2,13 @@ package com.pedro.screenshare.signaling
 
 import org.json.JSONObject
 
+data class RoutePoint(
+    val latitude: Double,
+    val longitude: Double,
+    val accuracy: Float,
+    val timestamp: Long
+)
+
 /**
  * SignalingMessage
  * ---------------------------------------------------------------------------
@@ -28,6 +35,11 @@ data class SignalingMessage(
     val sdpMLineIndex: Int? = null,
     val viewerId: String? = null,
     val viewerIds: List<String>? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val accuracy: Float? = null,
+    val timestamp: Long? = null,
+    val routePoints: List<RoutePoint>? = null,
     val message: String? = null
 ) {
     /** Converte esta mensagem para uma String JSON, pronta para enviar pelo WebSocket. */
@@ -41,6 +53,22 @@ data class SignalingMessage(
         sdpMLineIndex?.let { json.put("sdpMLineIndex", it) }
         viewerId?.let { json.put("viewerId", it) }
         viewerIds?.let { json.put("viewerIds", it) }
+        latitude?.let { json.put("latitude", it) }
+        longitude?.let { json.put("longitude", it) }
+        accuracy?.let { json.put("accuracy", it.toDouble()) }
+        timestamp?.let { json.put("timestamp", it) }
+        routePoints?.let { points ->
+            json.put("routePoints", org.json.JSONArray().apply {
+                points.forEach { point ->
+                    put(JSONObject().apply {
+                        put("latitude", point.latitude)
+                        put("longitude", point.longitude)
+                        put("accuracy", point.accuracy.toDouble())
+                        put("timestamp", point.timestamp)
+                    })
+                }
+            })
+        }
         message?.let { json.put("message", it) }
         return json.toString()
     }
@@ -58,6 +86,11 @@ data class SignalingMessage(
                 sdpMLineIndex = if (json.has("sdpMLineIndex")) json.getInt("sdpMLineIndex") else null,
                 viewerId = json.optStringOrNull("viewerId"),
                 viewerIds = json.optJSONArrayAsStringListOrNull("viewerIds"),
+                latitude = if (json.has("latitude") && !json.isNull("latitude")) json.getDouble("latitude") else null,
+                longitude = if (json.has("longitude") && !json.isNull("longitude")) json.getDouble("longitude") else null,
+                accuracy = if (json.has("accuracy") && !json.isNull("accuracy")) json.getDouble("accuracy").toFloat() else null,
+                timestamp = if (json.has("timestamp") && !json.isNull("timestamp")) json.getLong("timestamp") else null,
+                routePoints = json.optJSONArrayAsRoutePointsOrNull("routePoints"),
                 message = json.optStringOrNull("message")
             )
         }
@@ -73,6 +106,22 @@ data class SignalingMessage(
             if (!has(key) || isNull(key)) return null
             val array = getJSONArray(key)
             return (0 until array.length()).map { index -> array.getString(index) }
+        }
+
+        private fun JSONObject.optJSONArrayAsRoutePointsOrNull(key: String): List<RoutePoint>? {
+            if (!has(key) || isNull(key)) return null
+            val array = getJSONArray(key)
+            return (0 until array.length()).mapNotNull { index ->
+                val item = array.optJSONObject(index) ?: return@mapNotNull null
+                val latitude = if (item.has("latitude")) item.getDouble("latitude") else return@mapNotNull null
+                val longitude = if (item.has("longitude")) item.getDouble("longitude") else return@mapNotNull null
+                RoutePoint(
+                    latitude = latitude,
+                    longitude = longitude,
+                    accuracy = if (item.has("accuracy")) item.getDouble("accuracy").toFloat() else 0f,
+                    timestamp = if (item.has("timestamp")) item.getLong("timestamp") else 0L
+                )
+            }
         }
     }
 }

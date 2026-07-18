@@ -1,24 +1,31 @@
 package com.pedro.screenshare.ui
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.media.projection.MediaProjectionManager
 import android.net.ConnectivityManager
 import android.net.Network
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.pedro.screenshare.R
 import com.pedro.screenshare.data.LocalConfigManager
+import com.pedro.screenshare.service.RouteTrackingScheduler
 import com.pedro.screenshare.service.ScreenCaptureService
 import com.pedro.screenshare.session.TransmitterSession
 import com.pedro.screenshare.signaling.SignalingClient
@@ -70,6 +77,8 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
     private lateinit var buttonStartSharing: Button
     private lateinit var buttonStopSharing: Button
     private lateinit var buttonToggleRecording: Button
+    private lateinit var buttonStartRoute: Button
+    private lateinit var buttonStopRoute: Button
     private lateinit var buttonResetConfig: Button
 
     private var isSharing = false
@@ -143,6 +152,15 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
             consumePendingCaptureAction()
         }
 
+    private val routePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            if (hasForegroundLocationPermission()) {
+                requestBackgroundLocationOrStartRoute()
+            } else {
+                Toast.makeText(this, R.string.route_permission_negative, Toast.LENGTH_SHORT).show()
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_transmitter)
@@ -156,12 +174,16 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         buttonStartSharing = findViewById(R.id.buttonStartSharing)
         buttonStopSharing = findViewById(R.id.buttonStopSharing)
         buttonToggleRecording = findViewById(R.id.buttonToggleRecording)
+        buttonStartRoute = findViewById(R.id.buttonStartRoute)
+        buttonStopRoute = findViewById(R.id.buttonStopRoute)
         buttonResetConfig = findViewById(R.id.buttonResetConfig)
 
         buttonGoOnline.setOnClickListener { goOnline() }
         buttonStartSharing.setOnClickListener { requestStartSharing() }
         buttonStopSharing.setOnClickListener { stopSharing() }
         buttonToggleRecording.setOnClickListener { toggleRecording() }
+        buttonStartRoute.setOnClickListener { requestStartRoute() }
+        buttonStopRoute.setOnClickListener { stopRoute() }
         buttonResetConfig.setOnClickListener { resetConfig() }
 
         TransmitterSession.bindUi(applicationContext, transmitterSessionUiListener)
@@ -179,6 +201,8 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         // continua rodando e as mensagens (ex: novo visualizador entrando)
         // ainda precisam ser processadas.
         TransmitterSession.bindUi(applicationContext, transmitterSessionUiListener)
+        RouteTrackingScheduler.startIfEnabled(applicationContext)
+        updateRouteButtons()
         TransmitterSession.goOnline(applicationContext)
     }
 
@@ -222,6 +246,7 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
         WebRtcClient.closeAllPeerConnections()
         ScreenCaptureService.stopSharing(applicationContext)
         ScreenCaptureService.stopRecording(applicationContext)
+        RouteTrackingScheduler.stopTracking(applicationContext)
 
         localConfigManager.resetConfig()
         mainHandler.removeCallbacks(reconnectRunnable)
@@ -403,6 +428,77 @@ class TransmitterActivity : AppCompatActivity(), SignalingClient.Listener {
                 consumePendingCaptureAction()
             }
             .show()
+    }
+
+    private fun requestStartRoute() {
+        if (!hasForegroundLocationPermission()) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.route_permission_title)
+                .setMessage(R.string.route_permission_message)
+                .setPositiveButton(R.string.route_permission_positive) { _, _ ->
+                    routePermissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                }
+                .setNegativeButton(R.string.route_permission_negative, null)
+                .show()
+            return
+        }
+
+        requestBackgroundLocationOrStartRoute()
+    }
+
+    private fun requestBackgroundLocationOrStartRoute() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasBackgroundLocationPermission()) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.route_permission_title)
+                .setMessage(R.string.route_background_permission_message)
+                .setPositiveButton(R.string.route_permission_positive) { _, _ ->
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", packageName, null)
+                        )
+                    )
+                }
+                .setNegativeButton(R.string.route_permission_negative, null)
+                .show()
+            return
+        }
+
+        startRoute()
+    }
+
+    private fun startRoute() {
+        SignalingClient.send(SignalingMessage(type = SignalingEvent.ROUTE_CLEAR, roomId = Constants.ROOM_ID))
+        RouteTrackingScheduler.startTracking(applicationContext)
+        updateRouteButtons()
+        Toast.makeText(this, R.string.route_started, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun stopRoute() {
+        RouteTrackingScheduler.stopTracking(applicationContext)
+        updateRouteButtons()
+        Toast.makeText(this, R.string.route_stopped, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateRouteButtons() {
+        val isRouteEnabled = RouteTrackingScheduler.isTrackingEnabled(applicationContext)
+        buttonStartRoute.isEnabled = !isRouteEnabled
+        buttonStopRoute.isEnabled = isRouteEnabled
+    }
+
+    private fun hasForegroundLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun hasBackgroundLocationPermission(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun consumePendingCaptureAction() {

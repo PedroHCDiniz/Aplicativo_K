@@ -12,6 +12,7 @@
  * Cada sala guarda:
  *   - transmitter: { id, socket } do celular transmissor conectado (ou null)
  *   - isSharing: se o transmissor esta compartilhando a tela agora
+ *   - routePoints: pontos da rota do dia recebidos do transmissor
  *   - viewers: Map<viewerId, socket> com todos os visualizadores conectados
  *
  * Por que guardar isso em memoria (RAM) e nao em banco de dados?
@@ -34,6 +35,7 @@ function getOrCreateRoom(roomId) {
       roomId,
       transmitter: null, // { id, socket } | null
       isSharing: false,
+      routePoints: [],
       viewers: new Map(), // viewerId -> socket
     });
   }
